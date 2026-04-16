@@ -20,10 +20,10 @@ def fetch_jobs():
 def extract_links(soup, section_name, category):
     jobs = []
 
-    for div in soup.find_all("div"):
-        if section_name.lower() in div.text.lower():
+    for h2 in soup.find_all("h2"):
+        if section_name.lower() in h2.text.lower():
 
-            ul = div.find_next("ul")
+            ul = h2.find_next("ul")
             if not ul:
                 continue
 
@@ -41,14 +41,11 @@ def extract_links(soup, section_name, category):
                 if link.startswith("/"):
                     link = BASE_URL + link
 
-                # ❌ skip bad titles
-                if len(title) < 15:
+                # 🔥 strict filter
+                if len(title) < 20:
                     continue
 
-                if "latest jobs" in title.lower():
-                    continue
-
-                if BASE_URL not in link:
+                if any(x in title.lower() for x in ["home", "click here"]):
                     continue
 
                 jobs.append({
@@ -59,8 +56,6 @@ def extract_links(soup, section_name, category):
 
     return jobs
 
-
-# ================= DETAILS =================
 
 def fetch_details(job):
     try:
@@ -76,7 +71,7 @@ def fetch_details(job):
         job["fee_sc"] = extract_fee(text, "SC|ST")
         job["fee_female"] = extract_fee(text, "Female")
 
-        job["apply_link"] = extract_apply_link(soup, job["url"])
+        job["apply_link"] = extract_apply_link(soup, job["category"], job["url"])
 
     except Exception as e:
         print("Error:", e)
@@ -84,26 +79,31 @@ def fetch_details(job):
     return job
 
 
-# ================= APPLY LINK =================
-
-def extract_apply_link(soup, fallback):
+def extract_apply_link(soup, category, fallback):
     for a in soup.find_all("a"):
-        if "apply online" in a.text.lower():
-            return a.get("href")
-
-    for a in soup.find_all("a"):
-        if "registration" in a.text.lower():
-            return a.get("href")
-
-    for a in soup.find_all("a"):
+        text = a.text.lower()
         href = a.get("href", "")
-        if href.startswith("http") and "sarkariresult" not in href:
-            return href
+
+        if not href.startswith("http"):
+            continue
+
+        if any(x in href for x in ["play.google", "facebook", "youtube"]):
+            continue
+
+        if category == "latest_job":
+            if "apply" in text or "registration" in text:
+                return href
+
+        elif category == "admit_card":
+            if "admit" in text or "download" in text:
+                return href
+
+        elif category == "result":
+            if "result" in text or "check" in text:
+                return href
 
     return fallback
 
-
-# ================= HELPERS =================
 
 def extract(text, pattern):
     m = re.search(pattern, text, re.IGNORECASE)
@@ -111,6 +111,5 @@ def extract(text, pattern):
 
 
 def extract_fee(text, keyword):
-    pattern = rf"({keyword})[^0-9₹]*₹?\s*([0-9]+)"
-    m = re.search(pattern, text, re.IGNORECASE)
+    m = re.search(rf"({keyword})[^₹0-9]*₹?\s*(\d+)", text, re.IGNORECASE)
     return m.group(2) if m else "0"
