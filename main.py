@@ -2,24 +2,24 @@ import requests
 import time
 import random
 
-from scraper import fetch_jobs
+from scraper import fetch_jobs, fetch_details
 from classifier import classify_job
 from formatter import format_message
 from dedupe import load_seen, save_seen, is_new, mark_seen
-from config import BOT_TOKEN, CHANNEL_ID, ADMIN_ID, CHECK_INTERVAL, MAX_POSTS
 from controller import get_status, set_status
+from config import BOT_TOKEN, CHANNEL_ID, ADMIN_ID, CHECK_INTERVAL, MAX_POSTS
 
-# Load seen jobs
-seen = load_seen()
 
-# Telegram send function
+# ================= TELEGRAM SEND =================
+
 def send_telegram(text, chat_id=CHANNEL_ID):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     data = {
         "chat_id": chat_id,
         "text": text,
-        "parse_mode": "HTML"
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
     }
 
     try:
@@ -28,16 +28,17 @@ def send_telegram(text, chat_id=CHANNEL_ID):
         print("Telegram Error:", e)
 
 
-# Smart delay
+# ================= SMART DELAY =================
+
 def get_delay(category):
     if category == "result":
-        return random.randint(120, 240)
+        return random.randint(120, 240)   # 2–4 min
 
     elif category == "admit_card":
-        return random.randint(180, 300)
+        return random.randint(180, 300)   # 3–5 min
 
     elif category == "latest_job":
-        return random.randint(300, 600)
+        return random.randint(300, 600)   # 5–10 min
 
     return random.randint(180, 300)
 
@@ -105,53 +106,70 @@ def handle_command(text, user_id):
 
 # ================= MAIN LOOP =================
 
-while True:
-    try:
-        # 🔹 Listen for Telegram commands
-        get_updates()
+def run_bot():
+    print("🚀 Bot Started...")
 
-        status = get_status()
+    seen = load_seen()
 
-        if status == "paused":
-            print("⏸ Bot Paused")
-            time.sleep(5)
-            continue
+    while True:
+        try:
+            # 🔹 Check Telegram commands
+            get_updates()
 
-        if status == "stopped":
-            print("🛑 Bot Stopped")
-            break
+            status = get_status()
 
-        print("🔍 Checking for new jobs...")
-
-        jobs = fetch_jobs()
-        count = 0
-
-        for job in jobs:
-            if count >= MAX_POSTS:
-                break
-
-            if not is_new(job, seen):
+            if status == "paused":
+                print("⏸ Bot Paused")
+                time.sleep(5)
                 continue
 
-            category = classify_job(job)
-            msg = format_message(job, category)
+            if status == "stopped":
+                print("🛑 Bot Stopped")
+                break
 
-            print(f"🚀 Posting: {job['title']}")
+            print("🔍 Fetching jobs...")
 
-            send_telegram(msg)
+            jobs = fetch_jobs()
+            count = 0
 
-            mark_seen(job, seen)
-            save_seen(seen)
+            for job in jobs:
 
-            delay = get_delay(category)
-            print(f"⏳ Waiting {delay} sec")
-            time.sleep(delay)
+                if count >= MAX_POSTS:
+                    break
 
-            count += 1
+                if not is_new(job, seen):
+                    continue
 
-        print(f"😴 Sleeping {CHECK_INTERVAL} sec\n")
-        time.sleep(CHECK_INTERVAL)
+                # 🔥 Fetch full job details
+                job = fetch_details(job)
 
-    except Exception as e:
-        print("❌ Error:", e)
-        time.sleep(30)
+                category = classify_job(job)
+
+                msg = format_message(job, category)
+
+                print(f"📤 Posting: {job['title']}")
+
+                send_telegram(msg)
+
+                mark_seen(job, seen)
+                save_seen(seen)
+
+                delay = get_delay(category)
+                print(f"⏳ Delay: {delay} sec")
+
+                time.sleep(delay)
+
+                count += 1
+
+            print(f"😴 Sleeping {CHECK_INTERVAL} sec...\n")
+            time.sleep(CHECK_INTERVAL)
+
+        except Exception as e:
+            print("❌ Error:", e)
+            time.sleep(30)
+
+
+# ================= START =================
+
+if __name__ == "__main__":
+    run_bot()
