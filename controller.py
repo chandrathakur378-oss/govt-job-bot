@@ -2,12 +2,14 @@ import json
 
 FILE = "data/control.json"
 
+
 def get_status():
     try:
-        with open(FILE, "r") as f:
-            return json.load(f).get("status", "running")
+        with open(FILE) as f:
+            return json.load(f)["status"]
     except:
         return "running"
+
 
 def set_status(status):
     with open(FILE, "w") as f:
