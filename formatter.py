@@ -1,24 +1,19 @@
-def clean(value):
-    if not value or value == "N/A":
-        return "N/A"
-    return value
+def clean(v):
+    return v if v and v != "N/A" else "N/A"
 
 
 def format_message(job, category):
     title = job.get("title", "N/A")
+    link = job.get("apply_link", job.get("url"))
 
-    # 🔥 Use real apply link
-    link = job.get("apply_link", job.get("url", "#"))
+    start = clean(job.get("start_date"))
+    last = clean(job.get("last_date"))
+    exam = clean(job.get("exam_date"))
 
-    start_date = clean(job.get("start_date"))
-    last_date = clean(job.get("last_date"))
-    exam_date = clean(job.get("exam_date"))
+    fee_gen = job.get("fee_gen", "0")
+    fee_sc = job.get("fee_sc", "0")
+    fee_female = job.get("fee_female", "0")
 
-    fee_gen = clean(job.get("fee_gen"))
-    fee_sc = clean(job.get("fee_sc"))
-    fee_female = clean(job.get("fee_female"))
-
-    # ================= JOB =================
     if category == "latest_job":
         return f"""
 🔥 GOVT JOB ALERT
@@ -26,22 +21,21 @@ def format_message(job, category):
 ━━━━━━━━━━━━━━━━━━
 🆕 {title}
 
-📅 Start Date: {start_date}
-⏳ Last Date: {last_date}
+📅 Start Date: {start}
+⏳ Last Date: {last}
 
 💰 Application Fee:
 ▫️ General / OBC / EWS: ₹{fee_gen}
 ▫️ SC / ST: ₹{fee_sc}
 ▫️ Female: ₹{fee_female}
 
-📅 Exam Date: {exam_date}
+📅 Exam Date: {exam}
 
 ━━━━━━━━━━━━━━━━━━
 🚀 APPLY ONLINE 👇
 <a href="{link}">Click Here</a>
 """
 
-    # ================= ADMIT CARD =================
     elif category == "admit_card":
         return f"""
 🎫 ADMIT CARD RELEASED
@@ -49,14 +43,13 @@ def format_message(job, category):
 ━━━━━━━━━━━━━━━━━━
 🔥 {title}
 
-📅 Exam Date: {exam_date}
+📅 Exam Date: {exam}
 
 ━━━━━━━━━━━━━━━━━━
 📥 DOWNLOAD ADMIT CARD 👇
 <a href="{link}">Click Here</a>
 """
 
-    # ================= RESULT =================
     elif category == "result":
         return f"""
 📊 RESULT DECLARED
@@ -64,21 +57,7 @@ def format_message(job, category):
 ━━━━━━━━━━━━━━━━━━
 ⚡ {title}
 
-🎯 Check Your Result Now
-⏳ High Traffic Expected
-
 ━━━━━━━━━━━━━━━━━━
 📎 CHECK RESULT 👇
 <a href="{link}">Click Here</a>
-"""
-
-    # ================= FALLBACK =================
-    return f"""
-📢 UPDATE
-
-━━━━━━━━━━━━━━━━━━
-{title}
-
-━━━━━━━━━━━━━━━━━━
-🔗 <a href="{link}">Click Here</a>
 """
