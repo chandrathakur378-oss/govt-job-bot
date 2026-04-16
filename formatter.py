@@ -1,8 +1,24 @@
+def clean(value):
+    if not value or value == "N/A":
+        return "N/A"
+    return value
+
+
 def format_message(job, category):
-
     title = job.get("title", "N/A")
-    link = job.get("url", "#")
 
+    # 🔥 Use real apply link
+    link = job.get("apply_link", job.get("url", "#"))
+
+    start_date = clean(job.get("start_date"))
+    last_date = clean(job.get("last_date"))
+    exam_date = clean(job.get("exam_date"))
+
+    fee_gen = clean(job.get("fee_gen"))
+    fee_sc = clean(job.get("fee_sc"))
+    fee_female = clean(job.get("fee_female"))
+
+    # ================= JOB =================
     if category == "latest_job":
         return f"""
 🔥 GOVT JOB ALERT
@@ -10,21 +26,22 @@ def format_message(job, category):
 ━━━━━━━━━━━━━━━━━━
 🆕 {title}
 
-📅 Start Date: {job.get('start_date', 'N/A')}
-⏳ Last Date: {job.get('last_date', 'N/A')}
+📅 Start Date: {start_date}
+⏳ Last Date: {last_date}
 
 💰 Application Fee:
-▫️ General / OBC / EWS: ₹{job.get('fee_gen', 'N/A')}
-▫️ SC / ST: ₹{job.get('fee_sc', 'N/A')}
-▫️ Female: ₹{job.get('fee_female', 'N/A')}
+▫️ General / OBC / EWS: ₹{fee_gen}
+▫️ SC / ST: ₹{fee_sc}
+▫️ Female: ₹{fee_female}
 
-📅 Exam Date: {job.get('exam_date', 'N/A')}
+📅 Exam Date: {exam_date}
 
 ━━━━━━━━━━━━━━━━━━
 🚀 APPLY ONLINE 👇
 <a href="{link}">Click Here</a>
 """
 
+    # ================= ADMIT CARD =================
     elif category == "admit_card":
         return f"""
 🎫 ADMIT CARD RELEASED
@@ -32,13 +49,14 @@ def format_message(job, category):
 ━━━━━━━━━━━━━━━━━━
 🔥 {title}
 
-📅 Exam Date: {job.get('exam_date', 'N/A')}
+📅 Exam Date: {exam_date}
 
 ━━━━━━━━━━━━━━━━━━
 📥 DOWNLOAD ADMIT CARD 👇
 <a href="{link}">Click Here</a>
 """
 
+    # ================= RESULT =================
     elif category == "result":
         return f"""
 📊 RESULT DECLARED
@@ -52,4 +70,15 @@ def format_message(job, category):
 ━━━━━━━━━━━━━━━━━━
 📎 CHECK RESULT 👇
 <a href="{link}">Click Here</a>
+"""
+
+    # ================= FALLBACK =================
+    return f"""
+📢 UPDATE
+
+━━━━━━━━━━━━━━━━━━
+{title}
+
+━━━━━━━━━━━━━━━━━━
+🔗 <a href="{link}">Click Here</a>
 """
