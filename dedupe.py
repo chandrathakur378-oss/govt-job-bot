@@ -3,16 +3,27 @@ import os
 
 FILE = "data/seen.json"
 
+
 def load_seen():
     if not os.path.exists(FILE):
-        return []
-    return json.load(open(FILE))
+        return set()
 
-def save_seen(data):
-    json.dump(data, open(FILE, "w"))
+    with open(FILE, "r") as f:
+        return set(json.load(f))
+
+
+def save_seen(seen):
+    with open(FILE, "w") as f:
+        json.dump(list(seen), f)
+
+
+def get_id(job):
+    return job["url"]
+
 
 def is_new(job, seen):
-    return job["url"] not in seen
+    return get_id(job) not in seen
+
 
 def mark_seen(job, seen):
-    seen.append(job["url"])
+    seen.add(get_id(job))
