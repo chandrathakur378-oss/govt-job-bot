@@ -8,7 +8,6 @@ from flask import Flask
 from scraper import fetch_jobs, fetch_details
 from formatter import format_message
 from dedupe import load_seen, save_seen, is_new, mark_seen
-from controller import get_status
 from config import BOT_TOKEN, CHANNEL_ID, CHECK_INTERVAL, MAX_POSTS
 
 
@@ -16,7 +15,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Bot is running ✅"
+    return "Bot Running ✅"
 
 
 def send_telegram(text):
@@ -32,23 +31,18 @@ def send_telegram(text):
     requests.post(url, data=data)
 
 
-def get_delay(category):
-    if category == "result":
-        return random.randint(120, 240)
-    elif category == "admit_card":
-        return random.randint(180, 300)
-    else:
-        return random.randint(300, 600)
+def get_delay():
+    return random.randint(180, 300)
 
 
 def run_bot():
-    print("🚀 Bot Started...")
+    print("🚀 Clean Bot Started...")
 
     seen = load_seen()
 
     while True:
         try:
-            print("🔍 Fetching jobs...")
+            print("🔍 Fetching clean jobs...")
 
             jobs = fetch_jobs()
             count = 0
@@ -63,22 +57,16 @@ def run_bot():
 
                 job = fetch_details(job)
 
-                category = job["category"]
+                msg = format_message(job, job["category"])
 
-                link = job.get("apply_link", "")
-                if "play.google" in link:
-                    continue
-
-                msg = format_message(job, category)
-
-                print("Posting:", job["title"])
+                print("📤 Posting:", job["title"])
 
                 send_telegram(msg)
 
                 mark_seen(job, seen)
                 save_seen(seen)
 
-                time.sleep(get_delay(category))
+                time.sleep(get_delay())
                 count += 1
 
             time.sleep(CHECK_INTERVAL)
