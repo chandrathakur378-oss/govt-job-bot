@@ -1,115 +1,62 @@
 import requests
 from bs4 import BeautifulSoup
-import re
 
-BASE_URL = "https://www.sarkariresult.com"
+BASE_URL = "https://www.freejobalert.com/"
 
 
 def fetch_jobs():
-    res = requests.get(BASE_URL, timeout=10)
+    res = requests.get(BASE_URL)
     soup = BeautifulSoup(res.text, "html.parser")
 
     jobs = []
-    jobs += extract_links(soup, "Latest Jobs", "latest_job")
-    jobs += extract_links(soup, "Admit Card", "admit_card")
-    jobs += extract_links(soup, "Result", "result")
 
-    return jobs
+    for a in soup.find_all("a"):
+        title = a.text.strip()
+        link = a.get("href")
 
+        if not title or not link:
+            continue
 
-def extract_links(soup, section_name, category):
-    jobs = []
+        if not link.startswith("http"):
+            continue
 
-    for h2 in soup.find_all("h2"):
-        if section_name.lower() in h2.text.lower():
+        title_lower = title.lower()
 
-            ul = h2.find_next("ul")
-            if not ul:
-                continue
+        # 🔥 STRICT FILTER
+        if any(x in title_lower for x in ["recruitment", "apply", "online"]):
+            category = "latest_job"
 
-            for li in ul.find_all("li"):
-                a = li.find("a")
-                if not a:
-                    continue
+        elif "admit card" in title_lower:
+            category = "admit_card"
 
-                title = a.text.strip()
-                link = a.get("href")
+        elif "result" in title_lower:
+            category = "result"
 
-                if not title or not link:
-                    continue
+        else:
+            continue
 
-                if link.startswith("/"):
-                    link = BASE_URL + link
+        # ❌ remove garbage
+        if len(title) < 15:
+            continue
 
-                # 🔥 strict filter
-                if len(title) < 20:
-                    continue
-
-                if any(x in title.lower() for x in ["home", "click here"]):
-                    continue
-
-                jobs.append({
-                    "title": title,
-                    "url": link,
-                    "category": category
-                })
+        jobs.append({
+            "title": title,
+            "url": link,
+            "category": category,
+            "apply_link": link
+        })
 
     return jobs
 
 
 def fetch_details(job):
-    try:
-        res = requests.get(job["url"], timeout=10)
-        soup = BeautifulSoup(res.text, "html.parser")
-        text = soup.get_text(" ", strip=True)
+    # CLEAN MODE → no messy parsing
+    job["start_date"] = "Check Official"
+    job["last_date"] = "Check Official"
+    job["exam_date"] = "Check Official"
 
-        job["start_date"] = extract(text, r"Start Date\s*[:\-]?\s*(\d{1,2}\s\w+\s\d{4})")
-        job["last_date"] = extract(text, r"Last Date\s*[:\-]?\s*(\d{1,2}\s\w+\s\d{4})")
-        job["exam_date"] = extract(text, r"Exam Date\s*[:\-]?\s*([0-9A-Za-z \-]+)")
-
-        job["fee_gen"] = extract_fee(text, "General|OBC|EWS")
-        job["fee_sc"] = extract_fee(text, "SC|ST")
-        job["fee_female"] = extract_fee(text, "Female")
-
-        job["apply_link"] = extract_apply_link(soup, job["category"], job["url"])
-
-    except Exception as e:
-        print("Error:", e)
+    job["fee_gen"] = "0"
+    job["fee_sc"] = "0"
+    job["fee_female"] = "0"
 
     return job
-
-
-def extract_apply_link(soup, category, fallback):
-    for a in soup.find_all("a"):
-        text = a.text.lower()
-        href = a.get("href", "")
-
-        if not href.startswith("http"):
-            continue
-
-        if any(x in href for x in ["play.google", "facebook", "youtube"]):
-            continue
-
-        if category == "latest_job":
-            if "apply" in text or "registration" in text:
-                return href
-
-        elif category == "admit_card":
-            if "admit" in text or "download" in text:
-                return href
-
-        elif category == "result":
-            if "result" in text or "check" in text:
-                return href
-
-    return fallback
-
-
-def extract(text, pattern):
-    m = re.search(pattern, text, re.IGNORECASE)
-    return m.group(1) if m else "N/A"
-
-
-def extract_fee(text, keyword):
-    m = re.search(rf"({keyword})[^₹0-9]*₹?\s*(\d+)", text, re.IGNORECASE)
-    return m.group(2) if m else "0"
