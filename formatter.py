@@ -1,15 +1,28 @@
 def format_message(job, category):
-    link = f'<a href="{job["url"]}">Click Here</a>'
+
+    title = job.get("title", "N/A")
+    link = job.get("url", "#")
 
     if category == "latest_job":
         return f"""
 🔥 GOVT JOB ALERT
 
 ━━━━━━━━━━━━━━━━━━
-{job['title']} 🆕
+🆕 {title}
+
+📅 Start Date: {job.get('start_date', 'N/A')}
+⏳ Last Date: {job.get('last_date', 'N/A')}
+
+💰 Application Fee:
+▫️ General / OBC / EWS: ₹{job.get('fee_gen', 'N/A')}
+▫️ SC / ST: ₹{job.get('fee_sc', 'N/A')}
+▫️ Female: ₹{job.get('fee_female', 'N/A')}
+
+📅 Exam Date: {job.get('exam_date', 'N/A')}
 
 ━━━━━━━━━━━━━━━━━━
-📝 APPLY ONLINE 👉 {link}
+🚀 APPLY ONLINE 👇
+<a href="{link}">Click Here</a>
 """
 
     elif category == "admit_card":
@@ -17,10 +30,13 @@ def format_message(job, category):
 🎫 ADMIT CARD RELEASED
 
 ━━━━━━━━━━━━━━━━━━
-{job['title']} 🔥 OUT
+🔥 {title}
+
+📅 Exam Date: {job.get('exam_date', 'N/A')}
 
 ━━━━━━━━━━━━━━━━━━
-📥 DOWNLOAD ADMIT CARD 👉 {link}
+📥 DOWNLOAD ADMIT CARD 👇
+<a href="{link}">Click Here</a>
 """
 
     elif category == "result":
@@ -28,8 +44,12 @@ def format_message(job, category):
 📊 RESULT DECLARED
 
 ━━━━━━━━━━━━━━━━━━
-{job['title']} ⚡ LIVE
+⚡ {title}
+
+🎯 Check Your Result Now
+⏳ High Traffic Expected
 
 ━━━━━━━━━━━━━━━━━━
-📎 CHECK RESULT 👉 {link}
+📎 CHECK RESULT 👇
+<a href="{link}">Click Here</a>
 """
