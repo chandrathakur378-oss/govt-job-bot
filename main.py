@@ -1,6 +1,9 @@
 import requests
 import time
 import random
+import threading
+
+from flask import Flask
 
 from scraper import fetch_jobs, fetch_details
 from classifier import classify_job
@@ -8,6 +11,19 @@ from formatter import format_message
 from dedupe import load_seen, save_seen, is_new, mark_seen
 from controller import get_status, set_status
 from config import BOT_TOKEN, CHANNEL_ID, ADMIN_ID, CHECK_INTERVAL, MAX_POSTS
+
+
+# ================= FLASK SERVER (FOR RENDER) =================
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is running ✅"
+
+
+def start_flask():
+    app.run(host="0.0.0.0", port=10000)
 
 
 # ================= TELEGRAM SEND =================
@@ -32,13 +48,13 @@ def send_telegram(text, chat_id=CHANNEL_ID):
 
 def get_delay(category):
     if category == "result":
-        return random.randint(120, 240)   # 2–4 min
+        return random.randint(120, 240)
 
     elif category == "admit_card":
-        return random.randint(180, 300)   # 3–5 min
+        return random.randint(180, 300)
 
     elif category == "latest_job":
-        return random.randint(300, 600)   # 5–10 min
+        return random.randint(300, 600)
 
     return random.randint(180, 300)
 
@@ -104,7 +120,7 @@ def handle_command(text, user_id):
 """, ADMIN_ID)
 
 
-# ================= MAIN LOOP =================
+# ================= MAIN BOT LOOP =================
 
 def run_bot():
     print("🚀 Bot Started...")
@@ -113,7 +129,7 @@ def run_bot():
 
     while True:
         try:
-            # 🔹 Check Telegram commands
+            # 🔹 Telegram control
             get_updates()
 
             status = get_status()
@@ -140,7 +156,7 @@ def run_bot():
                 if not is_new(job, seen):
                     continue
 
-                # 🔥 Fetch full job details
+                # 🔥 Fetch full details
                 job = fetch_details(job)
 
                 category = classify_job(job)
@@ -169,7 +185,12 @@ def run_bot():
             time.sleep(30)
 
 
-# ================= START =================
+# ================= START BOTH =================
 
 if __name__ == "__main__":
-    run_bot()
+    # Run bot in background thread
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
+
+    # Run Flask (Render needs this)
+    start_flask()
